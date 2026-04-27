@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("USER")
+  avatar    String?
+  createdAt DateTime @default(now())
+
+  listings     Listing[]
+  bids         Bid[]
+  buyerOrders  Order[]   @relation("BuyerOrders")
+  sellerOrders Order[]   @relation("SellerOrders")
+  reviews      Review[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String
+  slug     String    @unique
+  icon     String
+  listings Listing[]
+}
+
+model Listing {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  images      String   @default("[]")
+  condition   String   @default("GOOD")
+  minBid      Float
+  currentBid  Float    @default(0)
+  status      String   @default("ACTIVE")
+  endsAt      DateTime
+  location    String   @default("")
+  createdAt   DateTime @default(now())
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  sellerId String
+  seller   User   @relation(fields: [sellerId], references: [id])
+
+  bids    Bid[]
+  orders  Order[]
+  reviews Review[]
+}
+
+model Bid {
+  id        String   @id @default(cuid())
+  amount    Float
+  createdAt DateTime @default(now())
+
+  bidderId String
+  bidder   User    @relation(fields: [bidderId], references: [id])
+
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id])
+}
+
+model Order {
+  id             String    @id @default(cuid())
+  amount         Float
+  platformFee    Float
+  sellerAmount   Float
+  status         String    @default("PAYMENT_PENDING")
+  trackingNumber String?
+  createdAt      DateTime  @default(now())
+  paidAt         DateTime?
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  completedAt    DateTime?
+
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id])
+
+  buyerId String
+  buyer   User   @relation("BuyerOrders", fields: [buyerId], references: [id])
+
+  sellerId String
+  seller   User   @relation("SellerOrders", fields: [sellerId], references: [id])
+
+  review Review?
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+
+  reviewerId String
+  reviewer   User   @relation(fields: [reviewerId], references: [id])
+
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id])
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
+}
